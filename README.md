@@ -5,7 +5,7 @@
 
  - gradle
  ```
-   compile 'cn.Lemon:guideview:0.1.0';
+   compile 'cn.Lemon:guideview:0.1.0'
  ```
  - 使用
  ```java

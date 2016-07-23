@@ -22,8 +22,8 @@ import android.widget.RelativeLayout;
 
 /**
  * 参考了https://github.com/laxian/GuideView
- * GuideView 的重要函数调用顺序 onMeasure --> onGlobalLayout --> createGuideView --> onMeasure -->
- * onGlobalLayout --> onDraw --> drawMaskLayer
+ * GuideView 的重要函数调用顺序 onMeasure -- onGlobalLayout -- createGuideView -- onMeasure --
+ * onGlobalLayout -- onDraw -- drawMaskLayer
  * 然后就是查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
  * <p>
  * Created by linlongxin on 2016/7/22.
