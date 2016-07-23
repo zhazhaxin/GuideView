@@ -1,0 +1,50 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "24.0.0"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile 'com.android.support:support-annotations:24.1.0'
+}
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'guide-view'
+
+    publishedGroupId = 'cn.Lemon'
+    artifact = 'guideview'  //与module名必须保持一致，踩了好多次坑了
+    libraryVersion = '0.1.0'
+
+    siteUrl = 'https://github.com/llxdaxia/GuideView'
+    gitUrl = 'https://github.com/llxdaxia/GuideView.git'
+
+    libraryName = 'GuideView'
+    libraryDescription = 'app luncher for guide user'
+
+    developerId = 'Lemon'
+    developerName = 'Lemon'
+    developerEmail = 'daxiallx@gmail.com'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+apply from: 'https://raw.githubusercontent.com/llxdaxia/GradleScript/master/install_v1.gradle'
+apply from: 'https://raw.githubusercontent.com/llxdaxia/GradleScript/master/bintray_v1.gradle'
