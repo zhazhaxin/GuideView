@@ -34,19 +34,26 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     private final String TAG = "GuideView";
 
     private boolean isMeasure = false;
-    private int mHintViewSpace = 20; //hintView和TargetView间距,默认20px
+    private boolean isShowOnce = false;
+    private int mHintViewSpace = 0; //hintView和TargetView间距,默认20px
     private int mTransparentPadding;
     private int mTransparentPaddingLeft;
     private int mTransparentPaddingTop;
     private int mTransparentPaddingRight;
     private int mTransparentPaddingBottom;
+    private int mTransparentMarginLeft;
+    private int mTransparentMarginRight;
+    private int mTransparentMarginTop;
+    private int mTransparentMarginBottom;
     private int[] mTargetViewLocation = new int[2];
     private int mTargetViewWidth;
     private int mTargetViewHeight;
     private int mHintViewDirection;
     private
     @ColorInt
-    int MASK_LAYER_COLOR = 0xCC2c2c2c;  //遮罩层默认颜色
+    int MASK_LAYER_COLOR = 0xcc1D1C1C;  //遮罩层默认颜色
+
+    private LayoutParams mHintLayoutParams;
 
     private Paint mBackgroundPaint;  //遮罩层画笔
     private Paint mTransparentPaint;  //透明椭圆画笔
@@ -55,7 +62,6 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     private Context mContext;
     private View mTargetView;
     private FrameLayout mDecorView;
-
 
 
     public GuideView(Context context) {
@@ -98,6 +104,26 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
 
     private void setTransparentPaddingBottom(int mTransparentPaddingBottom) {
         this.mTransparentPaddingBottom = mTransparentPaddingBottom;
+    }
+
+    public void setTransparentMarginLeft(int mTransparentMarginLeft) {
+        this.mTransparentMarginLeft = mTransparentMarginLeft;
+    }
+
+    public void setTransparentMarginRight(int mTransparentMarginRight) {
+        this.mTransparentMarginRight = mTransparentMarginRight;
+    }
+
+    public void setTransparentMarginTop(int mTransparentMarginTop) {
+        this.mTransparentMarginTop = mTransparentMarginTop;
+    }
+
+    public void setTransparentMarginBottom(int mTransparentMarginBottom) {
+        this.mTransparentMarginBottom = mTransparentMarginBottom;
+    }
+
+    public void setHintLayoutParams(LayoutParams mHintLayoutParams) {
+        this.mHintLayoutParams = mHintLayoutParams;
     }
 
     private void setHintViewSpace(int mHintViewSpace) {
@@ -148,8 +174,10 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             mTransparentPaddingBottom = mTransparentPadding;
         }
 
-        RectF rectF = new RectF(mTargetViewLocation[0] - mTransparentPaddingLeft, mTargetViewLocation[1] - mTransparentPaddingTop,
-                mTargetViewLocation[0] + mTargetViewWidth + mTransparentPaddingRight, mTargetViewLocation[1] + mTargetViewHeight + mTransparentPaddingBottom);
+        RectF rectF = new RectF(mTargetViewLocation[0] - mTransparentPaddingLeft + mTransparentMarginLeft,
+                mTargetViewLocation[1] - mTransparentPaddingTop + mTransparentMarginTop,
+                mTargetViewLocation[0] + mTargetViewWidth + mTransparentPaddingRight - mTransparentMarginRight,
+                mTargetViewLocation[1] + mTargetViewHeight + mTransparentPaddingBottom - mTransparentMarginBottom);
         mTemp.drawOval(rectF, mTransparentPaint);
 
         //绘制到GuideView的画布上
@@ -160,14 +188,18 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
      * 添加HintView
      */
     private void addHintView() {
-        Log.i(TAG, " --- createGuideView");
+        Log.i(TAG, " --- addHintView");
         if (mHintView != null) {
             int screenWidth = this.getWidth();
             int screenHeight = this.getHeight();
-            Log.i(TAG, "screenWidth : " + screenWidth);
-            Log.i(TAG, "screenHeight : " + screenHeight);
-            LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
+
+            LayoutParams layoutParams;
+            if (mHintLayoutParams != null) {
+                layoutParams = mHintLayoutParams;
+            } else {
+                layoutParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+            }
 
             switch (mHintViewDirection) {
                 /**
@@ -187,14 +219,18 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
                     break;
                 case Direction.ABOVE:
                     this.setGravity(Gravity.BOTTOM);
-                    layoutParams.setMargins(mTargetViewLocation[0],
-                            0, 0, mTargetViewLocation[1] + mHintViewSpace);
+                    layoutParams.setMargins(0, mTargetViewLocation[0],
+                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace);
                     break;
-                case Direction.BOTTOM:
+                case Direction.BOTTOM_ALIGN_LEFT:
                     this.setGravity(Gravity.TOP);
                     layoutParams.setMargins(mTargetViewLocation[0],
                             mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace, 0, 0);
                     break;
+                case Direction.BOTTOM_ALIGN_RIGHT:
+                    this.setGravity(Gravity.TOP);
+                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace,
+                            screenWidth - mTargetViewLocation[0] - mTargetViewWidth, 0);
                 case Direction.LEFT_BOTTOM:
                     this.setGravity(Gravity.RIGHT | Gravity.TOP);
                     layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace,
@@ -223,31 +259,36 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
 
 
     public void hide() {
+        Log.i(TAG, "hide");
+        if (isShowOnce) {
+            if (mTargetView != null) {
+                mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE).edit().
+                        putBoolean(TAG + mTargetView.getId(), true).apply();
+            }
+        }
         this.removeAllViews();
         mDecorView.removeView(this);
     }
 
     public void show() {
+        Log.i(TAG, "show");
         if (hasShow()) {
+            Log.i(TAG, "hasShow() == true");
             return;
         }
-        if (mTargetView != null) {
-            mTargetView.getViewTreeObserver().addOnGlobalLayoutListener(this);
-        }
+        mTargetView.getViewTreeObserver().addOnGlobalLayoutListener(this);
         this.setBackgroundColor(Color.TRANSPARENT);
 
         mDecorView.addView(this);
     }
 
-    private void showOnce() {
-        if (mTargetView != null) {
-            mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE).edit().
-                    putBoolean(TAG + mTargetView.getId(), true).apply();
-        }
+    private void showOnce(boolean isShowOnce) {
+        this.isShowOnce = isShowOnce;
     }
 
     private boolean hasShow() {
         if (mTargetView == null) {
+            Log.i(TAG, "mTargetView == null");
             return true;
         }
         return mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE).getBoolean(TAG + mTargetView.getId(), false);
@@ -279,7 +320,6 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             Log.i(TAG, "isMeasure = true");
             isMeasure = true;
         }
-
         if (mTargetViewWidth == 0 || mTargetViewHeight == 0) {
             mTargetViewWidth = mTargetView.getWidth();
             mTargetViewHeight = mTargetView.getHeight();
@@ -310,8 +350,8 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             return this;
         }
 
-        public Builder showOnce() {
-            mGuideView.showOnce();
+        public Builder showOnce(boolean isShowOnce) {
+            mGuideView.showOnce(isShowOnce);
             return this;
         }
 
@@ -350,6 +390,26 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             return this;
         }
 
+        public Builder setTransparentMarginLeft(int mTransparentMarginLeft) {
+            mGuideView.setTransparentMarginLeft(mTransparentMarginLeft);
+            return this;
+        }
+
+        public Builder setTransparentMarginRight(int mTransparentMarginRight) {
+            mGuideView.setTransparentMarginRight(mTransparentMarginRight);
+            return this;
+        }
+
+        public Builder setTransparentMarginTop(int mTransparentMarginTop) {
+            mGuideView.setTransparentMarginTop(mTransparentMarginTop);
+            return this;
+        }
+
+        public Builder setTransparentMarginBottom(int mTransparentMarginBottom) {
+            mGuideView.setTransparentMarginBottom(mTransparentMarginBottom);
+            return this;
+        }
+
         public Builder setHintViewSpace(int px) {
             mGuideView.setHintViewSpace(px);
             return this;
@@ -357,6 +417,11 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
 
         public Builder setBackgroundColor(@ColorInt int color) {
             mGuideView.setMaskBackgroundColor(color);
+            return this;
+        }
+
+        public Builder setHintLayoutParams(LayoutParams mHintLayoutParams) {
+            mGuideView.setHintLayoutParams(mHintLayoutParams);
             return this;
         }
 
