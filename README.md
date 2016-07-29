@@ -1,6 +1,6 @@
 # GuideView
 
- - 参考
+ - 参考了
  [https://github.com/laxian/GuideView](https://github.com/laxian/GuideView)
 
  - gradle

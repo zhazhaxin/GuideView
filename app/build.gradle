@@ -11,12 +11,26 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
-    buildTypes {
-        release {
-            minifyEnabled false
+
+    productFlavors{
+        dev{
+            applicationId "cn.lemon.guideviewdev"
+        }
+        qa{
+            applicationId "cn.lemon.guideviewqa"
+        }
+    }
+
+    buildTypes{
+
+        release{
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+
 }
 
 dependencies {
