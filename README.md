@@ -82,6 +82,8 @@
      }
  }
  ```
+**注意**
+>建议自己判断加载不加载guideView，这样能避免showOnce()在第二次进入页面页去绘制view
 
 ##License
 

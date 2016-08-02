@@ -47,7 +47,7 @@ public class GuideViewFragment extends Fragment {
                 .setHintViewDirection(Direction.RIGHT_BOTTOM)
                 .setTransparentOvalPadding(20)
                 .setBackgroundColor(0xcc789456)
-                .showOnce(true)
+                .showOnce(false)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -71,7 +71,7 @@ public class GuideViewFragment extends Fragment {
                         mGVThree.show();
                     }
                 })
-                .showOnce(true)
+                .showOnce(false)
                 .create();
 
         mGVThree = new GuideView.Builder(getActivity())
@@ -84,7 +84,7 @@ public class GuideViewFragment extends Fragment {
                         mGVThree.hide();
                     }
                 })
-                .showOnce(true)
+                .showOnce(false)
                 .create();
 
     }

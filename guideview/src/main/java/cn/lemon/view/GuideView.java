@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
+import android.os.Build;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IdRes;
 import android.util.AttributeSet;
@@ -20,11 +21,13 @@ import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
+import static android.content.Context.MODE_PRIVATE;
+
 /**
  * 参考了https://github.com/laxian/GuideView
- * GuideView 的重要函数调用顺序 onMeasure -- onGlobalLayout -- createGuideView -- onMeasure --
+ * GuideView 重要函数调用顺序 onMeasure -- onGlobalLayout -- createGuideView -- onMeasure --
  * onGlobalLayout -- onDraw -- drawMaskLayer
- * 然后就是查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
+ * 然后查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
  * <p>
  * Created by linlongxin on 2016/7/22.
  */
@@ -253,7 +256,13 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
                     break;
             }
 
-            this.addView(mHintView, layoutParams);
+            if (mHintView.getParent() != null) {
+                mHintView.setLayoutParams(layoutParams);
+                Log.i(TAG, "hintView 有爸爸啦。。。");
+//                ((ViewGroup) mHintView.getParent()).removeView(mHintView);
+            } else {
+                this.addView(mHintView, layoutParams);
+            }
         }
     }
 
@@ -262,8 +271,11 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
         Log.i(TAG, "hide");
         if (isShowOnce) {
             if (mTargetView != null) {
-                mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE).edit().
-                        putBoolean(TAG + mTargetView.getId(), true).apply();
+                getContext().getSharedPreferences(TAG, MODE_PRIVATE).edit()
+                        .putBoolean(TAG + +mTargetView.getId(), true);
+                if (Build.VERSION.SDK_INT >= 16) {
+                    mTargetView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
             }
         }
         this.removeAllViews();
@@ -273,7 +285,6 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     public void show() {
         Log.i(TAG, "show");
         if (hasShow()) {
-            Log.i(TAG, "hasShow() == true");
             return;
         }
         mTargetView.getViewTreeObserver().addOnGlobalLayoutListener(this);
@@ -291,7 +302,7 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             Log.i(TAG, "mTargetView == null");
             return true;
         }
-        return mContext.getSharedPreferences(TAG, Context.MODE_PRIVATE).getBoolean(TAG + mTargetView.getId(), false);
+        return getContext().getSharedPreferences(TAG, MODE_PRIVATE).getBoolean(TAG + mTargetView.getId(), false);
     }
 
     private void setTargetView(View targetView) {
@@ -299,7 +310,11 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     }
 
     private void setTargetView(@IdRes int resId) {
-        setTargetView(((Activity) mContext).findViewById(resId));
+        setTargetView(((Activity) getContext()).findViewById(resId));
+    }
+
+    private void setTargetView(@IdRes int resId, View view) {
+        setTargetView(view.findViewById(resId));
     }
 
     private void setHintView(View hintView) {
@@ -313,20 +328,29 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     @Override
     public void onGlobalLayout() {
         Log.i(TAG, " --- onGlobalLayout");
+        if (mTargetView == null) {
+            Log.i(TAG, "mTargetView == null");
+            return;
+        }
         if (isMeasure) {
             return;
         }
+        /**
+         * 说明测量了targetView
+         */
         if (mTargetView.getWidth() > 0 && mTargetView.getHeight() > 0) {
-            Log.i(TAG, "isMeasure = true");
             isMeasure = true;
-        }
-        if (mTargetViewWidth == 0 || mTargetViewHeight == 0) {
-            mTargetViewWidth = mTargetView.getWidth();
-            mTargetViewHeight = mTargetView.getHeight();
-            mTargetView.getLocationInWindow(mTargetViewLocation);
+            if (mTargetViewWidth == 0 || mTargetViewHeight == 0) {
+                mTargetViewWidth = mTargetView.getWidth();
+                mTargetViewHeight = mTargetView.getHeight();
+                mTargetView.getLocationInWindow(mTargetViewLocation);
+            }
+
+            addHintView();
+        } else {
+            Log.i(TAG, "targetView 不能被测量。。。。。");
         }
 
-        addHintView();
     }
 
 
@@ -431,7 +455,7 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
         }
 
         public GuideView create() {
-            Log.i("GuideView", "builder -- create");
+            Log.i("GuideView", "Builder.create()");
             return mGuideView;
         }
 
