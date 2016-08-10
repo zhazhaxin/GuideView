@@ -6,13 +6,21 @@ package cn.lemon.view;
 
 public interface Direction {
 
-    int LEFT = 1;
-    int LEFT_BOTTOM = 2;
-    int ABOVE = 3;
-    int BOTTOM_ALIGN_LEFT = 4;
-    int RIGHT = 5;
-    int RIGHT_BOTTOM = 6;
-    int LEFT_ABOVE = 7;
-    int RIGHT_ABOVE = 8;
-    int BOTTOM_ALIGN_RIGHT = 9;
+    int LEFT = 10; //左边，默认上边对齐
+    int LEFT_ABOVE = 11;  //左上方
+    int LEFT_BOTTOM = 12; //左下方
+    int LEFT_ALIGN_BOTTOM = 13; //左方并且下边对齐
+
+    int RIGHT = 20; //右边
+    int RIGHT_ABOVE = 21; //右上方
+    int RIGHT_BOTTOM = 22; //右下方
+    int RIGHT_ALIGN_BOTTOM = 23; //右方并且下边对齐
+
+    int ABOVE = 30; //正上方
+    int ABOVE_ALIGN_LEFT = 31; //上方并且左对齐
+    int ABOVE_ALIGN_RIGHT = 32; //上方并且右对齐
+
+    int BOTTON = 40; //正下方
+    int BOTTOM_ALIGN_LEFT = 41; //下方并且左对齐
+    int BOTTOM_ALIGN_RIGHT = 42; //下方并且右对齐
 }

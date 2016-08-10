@@ -18,13 +18,13 @@ import cn.lemon.view.GuideView;
 
 public class GuideViewFragment extends Fragment {
 
-    private GuideView mGVOne,mGVTwo,mGVThree;
-
+    private GuideView mGVOne, mGVTwo, mGVThree;
+    private View fragment;
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
-        return inflater.inflate(R.layout.fragment_guideview,container,false);
+        fragment = inflater.inflate(R.layout.fragment_guideview, container, false);
+        return fragment;
     }
 
     @Override
@@ -35,19 +35,26 @@ public class GuideViewFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        fragment.post(new Runnable() {
+            @Override
+            public void run() {
+                showGuideViews();
+            }
+        });
+    }
+
+    public void showGuideViews() {
         TextView mHintView = new TextView(getActivity());
-        mHintView.setText("哇咔咔");
-        mHintView.setTextSize(16f);
+        mHintView.setText("列夫·托尔斯泰曾在《安娜·卡列尼娜》里说过：幸福的家庭都是相似的");
+        mHintView.setTextSize(20f);
         mHintView.setTextColor(Color.WHITE);
-        mHintView.setBackgroundColor(Color.GRAY);
 
         mGVOne = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_one)
                 .setHintView(mHintView)
-                .setHintViewDirection(Direction.RIGHT_BOTTOM)
+                .setHintViewDirection(Direction.BOTTON)
                 .setTransparentOvalPadding(20)
-                .setBackgroundColor(0xcc789456)
-                .showOnce(false)
+                .setHintViewMarginTop(100)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -61,7 +68,7 @@ public class GuideViewFragment extends Fragment {
         mGVTwo = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_two)
                 .setHintView(mHintView)
-                .setHintViewDirection(Direction.RIGHT_ABOVE)
+                .setHintViewDirection(Direction.ABOVE_ALIGN_LEFT)
                 .setTransparentOvalPaddingLeft(20)
                 .setTransparentOvalPaddingRight(20)
                 .setOnClickListener(new View.OnClickListener() {
@@ -71,21 +78,18 @@ public class GuideViewFragment extends Fragment {
                         mGVThree.show();
                     }
                 })
-                .showOnce(false)
                 .create();
 
         mGVThree = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_three)
                 .setHintView(mHintView)
-                .setHintViewDirection(Direction.LEFT_BOTTOM)
+                .setHintViewDirection(Direction.BOTTOM_ALIGN_RIGHT)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         mGVThree.hide();
                     }
                 })
-                .showOnce(false)
                 .create();
-
     }
 }

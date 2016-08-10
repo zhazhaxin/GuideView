@@ -9,7 +9,6 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
-import android.os.Build;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IdRes;
 import android.util.AttributeSet;
@@ -17,44 +16,58 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
-
-import static android.content.Context.MODE_PRIVATE;
 
 /**
  * 参考了https://github.com/laxian/GuideView
  * GuideView 重要函数调用顺序 onMeasure -- onGlobalLayout -- createGuideView -- onMeasure --
- * onGlobalLayout -- onDraw -- drawMaskLayer
- * 然后查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
+ * onGlobalLayout -- onDraw -- drawMaskLayer -- 查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
+ * <p>
+ * 注意：
+ * 为了能查找到TargetView的位置，应该在TargetView的显示出来并且能获取到width,height以后才能使用GuideView。当ViewTree布局发生改变的时候回调
+ * OnGlobalLayout方法，并且应该控制回调一次。在通常情况下建议在onResume()使用。同时不建议使用showOnce()方法，建议自己控制显示条件。
+ * 在一些特殊的情况下可以这样使用：
+ * view.post(new Runnable(){
+ * public void run(){
+ * new GuideView.Builder()
+ * .setTargetView()
+ * .create().show();
+ * }
+ * });
  * <p>
  * Created by linlongxin on 2016/7/22.
  */
 
-public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlobalLayoutListener {
+public class GuideView extends RelativeLayout {
 
     private final String TAG = "GuideView";
 
-    private boolean isMeasure = false;
-    private boolean isShowOnce = false;
+    private boolean hasAddHintView = false;
+    private boolean isShowing = false;
     private int mHintViewSpace = 0; //hintView和TargetView间距,默认20px
     private int mTransparentPadding;
     private int mTransparentPaddingLeft;
     private int mTransparentPaddingTop;
     private int mTransparentPaddingRight;
     private int mTransparentPaddingBottom;
+    private int mTransparentMargin;
     private int mTransparentMarginLeft;
     private int mTransparentMarginRight;
     private int mTransparentMarginTop;
     private int mTransparentMarginBottom;
+    private int mHintViewMargin;  //mHintViewSpace和它意义相同，但mHintViewMargin会覆盖其他的margin类型
+    private int mHintViewMarginLeft;
+    private int mHintViewMarginRight;
+    private int mHintViewMarginTop;
+    private int mHintViewMarginBottom;
     private int[] mTargetViewLocation = new int[2];
     private int mTargetViewWidth;
     private int mTargetViewHeight;
     private int mHintViewDirection;
     private
     @ColorInt
-    int MASK_LAYER_COLOR = 0xcc1D1C1C;  //遮罩层默认颜色
+    int MASK_LAYER_COLOR = 0xd91D1C1C;  //遮罩层默认颜色
 
     private LayoutParams mHintLayoutParams;
 
@@ -62,10 +75,8 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     private Paint mTransparentPaint;  //透明椭圆画笔
 
     private View mHintView;
-    private Context mContext;
     private View mTargetView;
     private FrameLayout mDecorView;
-
 
     public GuideView(Context context) {
         this(context, null);
@@ -78,75 +89,56 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
     public GuideView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         Log.i(TAG, " --- GuideView");
-        mContext = context;
         mDecorView = (FrameLayout) ((Activity) getContext()).getWindow().getDecorView();
         mBackgroundPaint = new Paint();
         mTransparentPaint = new Paint();
         mBackgroundPaint.setColor(MASK_LAYER_COLOR);
     }
 
-    private void setMaskBackgroundColor(@ColorInt int color) {
-        mBackgroundPaint.setColor(color);
-    }
-
-    private void setTransparentPadding(int padding) {
-        mTransparentPadding = padding;
-    }
-
-    private void setTransparentPaddingLeft(int mTransparentPaddingLeft) {
-        this.mTransparentPaddingLeft = mTransparentPaddingLeft;
-    }
-
-    private void setTransparentPaddingTop(int mTransparentPaddingTop) {
-        this.mTransparentPaddingTop = mTransparentPaddingTop;
-    }
-
-    private void setTransparentPaddingRight(int mTransparentPaddingRight) {
-        this.mTransparentPaddingRight = mTransparentPaddingRight;
-    }
-
-    private void setTransparentPaddingBottom(int mTransparentPaddingBottom) {
-        this.mTransparentPaddingBottom = mTransparentPaddingBottom;
-    }
-
-    public void setTransparentMarginLeft(int mTransparentMarginLeft) {
-        this.mTransparentMarginLeft = mTransparentMarginLeft;
-    }
-
-    public void setTransparentMarginRight(int mTransparentMarginRight) {
-        this.mTransparentMarginRight = mTransparentMarginRight;
-    }
-
-    public void setTransparentMarginTop(int mTransparentMarginTop) {
-        this.mTransparentMarginTop = mTransparentMarginTop;
-    }
-
-    public void setTransparentMarginBottom(int mTransparentMarginBottom) {
-        this.mTransparentMarginBottom = mTransparentMarginBottom;
-    }
-
-    public void setHintLayoutParams(LayoutParams mHintLayoutParams) {
-        this.mHintLayoutParams = mHintLayoutParams;
-    }
-
-    private void setHintViewSpace(int mHintViewSpace) {
-        this.mHintViewSpace = mHintViewSpace;
+    public void initParams(Builder.GuideViewParams params) {
+        Log.i(TAG, "initParams");
+        mTargetView = params.mTargetView;
+        mHintView = params.mHintView;
+        mHintViewSpace = params.mHintViewSpace; //hintView和TargetView间距,默认20px
+        mTransparentPadding = params.mTransparentPadding;
+        mTransparentPaddingLeft = params.mTransparentPaddingLeft;
+        mTransparentPaddingTop = params.mTransparentPaddingTop;
+        mTransparentPaddingRight = params.mTransparentPaddingRight;
+        mTransparentPaddingBottom = params.mTransparentPaddingBottom;
+        mTransparentMargin = params.mTransparentMargin;
+        mTransparentMarginLeft = params.mTransparentMarginLeft;
+        mTransparentMarginRight = params.mTransparentMarginRight;
+        mTransparentMarginTop = params.mTransparentMarginTop;
+        mTransparentMarginBottom = params.mTransparentMarginBottom;
+        mHintViewMargin = params.mHintViewMargin;  //mHintViewSpace和它意义相同，但mHintViewMargin会覆盖其他的margin类型
+        mHintViewMarginLeft = params.mHintViewMarginLeft;
+        mHintViewMarginRight = params.mHintViewMarginRight;
+        mHintViewMarginTop = params.mHintViewMarginTop;
+        mHintViewMarginBottom = params.mHintViewMarginBottom;
+        mHintViewDirection = params.mDirection;
+        MASK_LAYER_COLOR = params.MASK_LAYER_COLOR;  //遮罩层默认颜色
+        mHintLayoutParams = params.mHintLayoutParams;
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         Log.i(TAG, " --- onMeasure");
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        Log.i(TAG, " --- onLayout");
+        super.onLayout(changed, l, t, r, b);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         Log.i(TAG, " --- onDraw");
-
-        if (!isMeasure || mTargetView == null) {
+        if (mTargetView == null) {
             return;
         }
-
+        getTargetViewPosition();
         drawMaskLayer(canvas);
     }
 
@@ -176,6 +168,24 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
             mTransparentPaddingTop = mTransparentPadding;
             mTransparentPaddingBottom = mTransparentPadding;
         }
+        /**
+         * 透明区域Margin设置
+         */
+        if (mTransparentMargin != 0) {
+            mTransparentMarginLeft = mTransparentMargin;
+            mTransparentMarginRight = mTransparentMargin;
+            mTransparentMarginTop = mTransparentMargin;
+            mTransparentMarginBottom = mTransparentMargin;
+        }
+        /**
+         * HintView margin设置
+         */
+        if (mHintViewMargin != 0) {
+            mHintViewMarginLeft = mHintViewMargin;
+            mHintViewMarginRight = mHintViewMargin;
+            mHintViewMarginTop = mHintViewMargin;
+            mHintViewMarginBottom = mHintViewMargin;
+        }
 
         RectF rectF = new RectF(mTargetViewLocation[0] - mTransparentPaddingLeft + mTransparentMarginLeft,
                 mTargetViewLocation[1] - mTransparentPaddingTop + mTransparentMarginTop,
@@ -191,6 +201,9 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
      * 添加HintView
      */
     private void addHintView() {
+        if (hasAddHintView) {
+            return;
+        }
         Log.i(TAG, " --- addHintView");
         if (mHintView != null) {
             int screenWidth = this.getWidth();
@@ -208,257 +221,303 @@ public class GuideView extends RelativeLayout implements ViewTreeObserver.OnGlob
                 /**
                  * FrameLayout没有setGravity()方法
                  */
-                case 0:
-                    break;
+                //左边相关
                 case Direction.LEFT:
                     this.setGravity(Gravity.RIGHT);
                     layoutParams.setMargins(0, mTargetViewLocation[1],
-                            screenWidth - mTargetViewLocation[0] + mHintViewSpace, 0);
+                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
                     break;
-                case Direction.RIGHT:
-                    this.setGravity(Gravity.LEFT);
-                    layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace,
-                            mTargetViewLocation[1], 0, 0);
-                    break;
-                case Direction.ABOVE:
-                    this.setGravity(Gravity.BOTTOM);
-                    layoutParams.setMargins(0, mTargetViewLocation[0],
-                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace);
-                    break;
-                case Direction.BOTTOM_ALIGN_LEFT:
-                    this.setGravity(Gravity.TOP);
-                    layoutParams.setMargins(mTargetViewLocation[0],
-                            mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace, 0, 0);
-                    break;
-                case Direction.BOTTOM_ALIGN_RIGHT:
-                    this.setGravity(Gravity.TOP);
-                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace,
-                            screenWidth - mTargetViewLocation[0] - mTargetViewWidth, 0);
                 case Direction.LEFT_BOTTOM:
                     this.setGravity(Gravity.RIGHT | Gravity.TOP);
-                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace,
-                            screenWidth - mTargetViewLocation[0] + mHintViewSpace, 0);
-                    break;
-                case Direction.RIGHT_BOTTOM:
-                    this.setGravity(Gravity.LEFT | Gravity.TOP);
-                    layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace,
-                            mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace, 0, 0);
+                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop,
+                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
                     break;
                 case Direction.LEFT_ABOVE:
                     this.setGravity(Gravity.RIGHT | Gravity.BOTTOM);
-                    layoutParams.setMargins(0, 0, screenWidth - mTargetViewLocation[0] + mHintViewSpace,
-                            screenHeight - mTargetViewLocation[1] + mHintViewSpace);
+                    layoutParams.setMargins(0, 0, screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
+                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    break;
+                case Direction.LEFT_ALIGN_BOTTOM:
+                    this.setGravity(Gravity.RIGHT | Gravity.BOTTOM);
+                    layoutParams.setMargins(0, mTargetViewLocation[1],
+                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
+                            screenHeight - mTargetViewLocation[1] - mTargetViewHeight);
+                    break;
+
+                //右边相关
+                case Direction.RIGHT:
+                    this.setGravity(Gravity.LEFT);
+                    layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace + mHintViewMarginLeft,
+                            mTargetViewLocation[1], 0, 0);
                     break;
                 case Direction.RIGHT_ABOVE:
                     this.setGravity(Gravity.LEFT | Gravity.BOTTOM);
-                    layoutParams.setMargins(mTargetViewWidth + mTargetViewLocation[0] + mHintViewSpace, 0,
-                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace);
+                    layoutParams.setMargins(mTargetViewWidth + mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginLeft, 0,
+                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
+                case Direction.RIGHT_BOTTOM:
+                    this.setGravity(Gravity.LEFT | Gravity.TOP);
+                    layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace + mHintViewMarginLeft,
+                            mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop, 0, 0);
+                    break;
+                case Direction.RIGHT_ALIGN_BOTTOM:
+                    this.setGravity(Gravity.LEFT | Gravity.BOTTOM);
+                    layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace + mHintViewMarginLeft,
+                            mTargetViewLocation[1], 0, screenHeight - mTargetViewLocation[1] - mTargetViewHeight);
+                    break;
+
+                //上方相关
+                case Direction.ABOVE:
+                    this.setGravity(Gravity.BOTTOM);
+                    layoutParams.setMargins(0, 0,
+                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    break;
+                case Direction.ABOVE_ALIGN_LEFT:
+                    this.setGravity(Gravity.BOTTOM | Gravity.LEFT);
+                    layoutParams.setMargins(mTargetViewLocation[0] + mHintViewMarginLeft, 0, 0,
+                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    break;
+                case Direction.ABOVE_ALIGN_RIGHT:
+                    this.setGravity(Gravity.BOTTOM | Gravity.RIGHT);
+                    layoutParams.setMargins(0, 0, screenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight,
+                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    break;
+
+                //下方相关
+                case Direction.BOTTON:
+                    this.setGravity(Gravity.TOP);
+                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewMarginTop, 0, 0);
+                    break;
+                case Direction.BOTTOM_ALIGN_LEFT:
+                    this.setGravity(Gravity.TOP);
+                    layoutParams.setMargins(mTargetViewLocation[0] + mHintViewMarginLeft,
+                            mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop, 0, 0);
+                    break;
+                case Direction.BOTTOM_ALIGN_RIGHT:
+                    this.setGravity(Gravity.TOP);
+                    layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop,
+                            screenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight, 0);
             }
 
             if (mHintView.getParent() != null) {
                 mHintView.setLayoutParams(layoutParams);
                 Log.i(TAG, "hintView 有爸爸啦。。。");
-//                ((ViewGroup) mHintView.getParent()).removeView(mHintView);
             } else {
                 this.addView(mHintView, layoutParams);
+                hasAddHintView = true;
             }
         }
     }
 
-
     public void hide() {
         Log.i(TAG, "hide");
-        if (isShowOnce) {
-            if (mTargetView != null) {
-                getContext().getSharedPreferences(TAG, MODE_PRIVATE).edit()
-                        .putBoolean(TAG + +mTargetView.getId(), true);
-                if (Build.VERSION.SDK_INT >= 16) {
-                    mTargetView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                }
-            }
-        }
         this.removeAllViews();
         mDecorView.removeView(this);
     }
 
     public void show() {
-        Log.i(TAG, "show");
-        if (hasShow()) {
+        Log.i(TAG, "show : add GuideView into DecorView");
+        if (isShowing()) {
             return;
         }
-        mTargetView.getViewTreeObserver().addOnGlobalLayoutListener(this);
-        this.setBackgroundColor(Color.TRANSPARENT);
-
+        this.setBackgroundColor(Color.TRANSPARENT); //这句为什么么必须要。
         mDecorView.addView(this);
+        isShowing = true;
     }
 
-    private void showOnce(boolean isShowOnce) {
-        this.isShowOnce = isShowOnce;
-    }
-
-    private boolean hasShow() {
+    private boolean isShowing() {
         if (mTargetView == null) {
             Log.i(TAG, "mTargetView == null");
             return true;
         }
-        return getContext().getSharedPreferences(TAG, MODE_PRIVATE).getBoolean(TAG + mTargetView.getId(), false);
+        return isShowing;
     }
 
-    private void setTargetView(View targetView) {
-        mTargetView = targetView;
-    }
-
-    private void setTargetView(@IdRes int resId) {
-        setTargetView(((Activity) getContext()).findViewById(resId));
-    }
-
-    private void setTargetView(@IdRes int resId, View view) {
-        setTargetView(view.findViewById(resId));
-    }
-
-    private void setHintView(View hintView) {
-        mHintView = hintView;
-    }
-
-    private void setHintViewDirection(int direction) {
-        mHintViewDirection = direction;
-    }
-
-    @Override
-    public void onGlobalLayout() {
-        Log.i(TAG, " --- onGlobalLayout");
+    public void getTargetViewPosition() {
         if (mTargetView == null) {
             Log.i(TAG, "mTargetView == null");
             return;
         }
-        if (isMeasure) {
-            return;
-        }
-        /**
-         * 说明测量了targetView
-         */
         if (mTargetView.getWidth() > 0 && mTargetView.getHeight() > 0) {
-            isMeasure = true;
+            mTargetView.getLocationInWindow(mTargetViewLocation);
             if (mTargetViewWidth == 0 || mTargetViewHeight == 0) {
                 mTargetViewWidth = mTargetView.getWidth();
                 mTargetViewHeight = mTargetView.getHeight();
-                mTargetView.getLocationInWindow(mTargetViewLocation);
             }
-
+            Log.i(TAG, "targetView.width : " + mTargetView.getWidth() + " location x : " + mTargetViewLocation[0]);
+            Log.i(TAG, "targetView.height : " + mTargetView.getHeight() + " location y : " + mTargetViewLocation[1]);
             addHintView();
         } else {
-            Log.i(TAG, "targetView 不能被测量。。。。。");
+            Log.i(TAG, "targetView is not measured,please user view.post(Runnable run) initialize GuideView");
         }
-
     }
-
 
     /**
      * 通过Builder构建
      */
     public static class Builder {
-        private GuideView mGuideView;
+
+        private static class GuideViewParams {
+            View mTargetView;
+            View mHintView;
+            int mDirection;
+            int mHintViewSpace = 20; //hintView和TargetView间距,默认20px
+            int mTransparentPadding;
+            int mTransparentPaddingLeft;
+            int mTransparentPaddingTop;
+            int mTransparentPaddingRight;
+            int mTransparentPaddingBottom;
+            int mTransparentMargin;
+            int mTransparentMarginLeft;
+            int mTransparentMarginRight;
+            int mTransparentMarginTop;
+            int mTransparentMarginBottom;
+            int mHintViewMargin;  //mHintViewSpace和它意义相同
+            int mHintViewMarginLeft;
+            int mHintViewMarginRight;
+            int mHintViewMarginTop;
+            int mHintViewMarginBottom;
+            @ColorInt
+            int MASK_LAYER_COLOR = 0xcc1D1C1C;  //遮罩层默认颜色
+            LayoutParams mHintLayoutParams;
+            OnClickListener mClickListener;
+        }
+
+        private GuideViewParams mParams;
+        private Context mContext;
 
         public Builder(Context ctx) {
-            mGuideView = new GuideView(ctx);
+            mParams = new GuideViewParams();
+            mContext = ctx;
         }
 
         public Builder setTargetView(View targetView) {
-            mGuideView.setTargetView(targetView);
+            mParams.mTargetView = targetView;
             return this;
         }
 
         public Builder setTargetView(@IdRes int resId) {
-            mGuideView.setTargetView(resId);
-            return this;
-        }
-
-        public Builder showOnce(boolean isShowOnce) {
-            mGuideView.showOnce(isShowOnce);
+            mParams.mTargetView = ((Activity) mContext).findViewById(resId);
             return this;
         }
 
         public Builder setHintView(View hintView) {
-            mGuideView.setHintView(hintView);
+            mParams.mHintView = hintView;
             return this;
         }
 
         public Builder setHintViewDirection(int direction) {
-            mGuideView.setHintViewDirection(direction);
+            mParams.mDirection = direction;
             return this;
         }
 
         public Builder setTransparentOvalPadding(int px) {
-            mGuideView.setTransparentPadding(px);
+            mParams.mTransparentPadding = px;
             return this;
         }
 
         public Builder setTransparentOvalPaddingLeft(int px) {
-            mGuideView.setTransparentPaddingLeft(px);
+            mParams.mTransparentPaddingLeft = px;
             return this;
         }
 
         public Builder setTransparentOvalPaddingRight(int px) {
-            mGuideView.setTransparentPaddingRight(px);
+            mParams.mTransparentPaddingRight = px;
             return this;
         }
 
         public Builder setTransparentOvalPaddingTop(int px) {
-            mGuideView.setTransparentPaddingTop(px);
+            mParams.mTransparentPaddingTop = px;
             return this;
         }
 
         public Builder setTransparentOvalPaddingBottom(int px) {
-            mGuideView.setTransparentPaddingBottom(px);
+            mParams.mTransparentPaddingBottom = px;
+            return this;
+        }
+
+        public Builder setTransparentMargin(int px) {
+            mParams.mTransparentMargin = px;
             return this;
         }
 
         public Builder setTransparentMarginLeft(int mTransparentMarginLeft) {
-            mGuideView.setTransparentMarginLeft(mTransparentMarginLeft);
+            mParams.mTransparentMarginLeft = mTransparentMarginLeft;
             return this;
         }
 
         public Builder setTransparentMarginRight(int mTransparentMarginRight) {
-            mGuideView.setTransparentMarginRight(mTransparentMarginRight);
+            mParams.mTransparentMarginRight = mTransparentMarginRight;
             return this;
         }
 
         public Builder setTransparentMarginTop(int mTransparentMarginTop) {
-            mGuideView.setTransparentMarginTop(mTransparentMarginTop);
+            mParams.mTransparentMarginTop = mTransparentMarginTop;
             return this;
         }
 
         public Builder setTransparentMarginBottom(int mTransparentMarginBottom) {
-            mGuideView.setTransparentMarginBottom(mTransparentMarginBottom);
+            mParams.mTransparentMarginBottom = mTransparentMarginBottom;
+            return this;
+        }
+
+        public Builder setHintViewMargin(int px) {
+            mParams.mHintViewMargin = px;
+            return this;
+        }
+
+        public Builder setHintViewMarginLeft(int px) {
+            mParams.mHintViewMarginLeft = px;
+            return this;
+        }
+
+        public Builder setHintViewMarginRight(int px) {
+            mParams.mHintViewMarginRight = px;
+            return this;
+        }
+
+        public Builder setHintViewMarginTop(int px) {
+            mParams.mHintViewMarginTop = px;
+            return this;
+        }
+
+        public Builder setHintViewMarginBottom(int px) {
+            mParams.mHintViewMarginBottom = px;
             return this;
         }
 
         public Builder setHintViewSpace(int px) {
-            mGuideView.setHintViewSpace(px);
+            mParams.mHintViewSpace = px;
             return this;
         }
 
         public Builder setBackgroundColor(@ColorInt int color) {
-            mGuideView.setMaskBackgroundColor(color);
+            mParams.MASK_LAYER_COLOR = color;
             return this;
         }
 
         public Builder setHintLayoutParams(LayoutParams mHintLayoutParams) {
-            mGuideView.setHintLayoutParams(mHintLayoutParams);
+            mParams.mHintLayoutParams = mHintLayoutParams;
             return this;
         }
 
         public Builder setOnClickListener(OnClickListener listener) {
-            mGuideView.setOnClickListener(listener);
+            mParams.mClickListener = listener;
             return this;
         }
 
         public GuideView create() {
-            Log.i("GuideView", "Builder.create()");
-            return mGuideView;
+            if (mParams.mTargetView == null) {
+                throw new RuntimeException("please set a targetView");
+            }
+            GuideView guideView = new GuideView(mContext);
+            guideView.initParams(mParams);
+            guideView.setOnClickListener(mParams.mClickListener);
+            return guideView;
         }
 
-
+        public void show() {
+            create().show();
+        }
     }
 }
