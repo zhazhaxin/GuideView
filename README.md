@@ -5,85 +5,106 @@
 
  - gradle
  ```
-   compile 'cn.Lemon:guideview:0.1.2'
+   compile 'cn.Lemon:guideview:0.1.5'
  ```
  - 使用
  ```java
- public class MainActivity extends AppCompatActivity {
+ package cn.lemon.guideview;
 
-     private TextView mTestOne, mTestTwo, mTestThree;
-     private TextView mHintView;
-     private GuideView mG1, mG2, mG3;
+ import android.graphics.Color;
+ import android.os.Bundle;
+ import android.support.annotation.Nullable;
+ import android.support.v4.app.Fragment;
+ import android.view.LayoutInflater;
+ import android.view.View;
+ import android.view.ViewGroup;
+ import android.widget.TextView;
 
+ import cn.lemon.view.Direction;
+ import cn.lemon.view.GuideView;
+
+ /**
+  * Created by linlongxin on 2016/7/25.
+  */
+
+ public class GuideViewFragment extends Fragment {
+
+     private GuideView mGVOne, mGVTwo, mGVThree;
+     private View fragment;
+     @Nullable
      @Override
-     protected void onCreate(Bundle savedInstanceState) {
-         super.onCreate(savedInstanceState);
-         setContentView(R.layout.activity_main);
-
-         mTestOne = (TextView) findViewById(R.id.text_one);
-         mTestTwo = (TextView) findViewById(R.id.text_two);
-         mTestThree = (TextView) findViewById(R.id.text_three);
-
+     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+         fragment = inflater.inflate(R.layout.fragment_guideview, container, false);
+         return fragment;
      }
 
      @Override
-     protected void onResume() {
+     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+         super.onViewCreated(view, savedInstanceState);
+     }
+
+     @Override
+     public void onResume() {
          super.onResume();
+         fragment.post(new Runnable() {
+             @Override
+             public void run() {
+                 showGuideViews();
+             }
+         });
+     }
 
-         mHintView = new TextView(this);
-         mHintView.setText("哇咔咔");
-         mHintView.setTextSize(16f);
+     public void showGuideViews() {
+         TextView mHintView = new TextView(getActivity());
+         mHintView.setText("列夫·托尔斯泰曾在《安娜·卡列尼娜》里说过：幸福的家庭都是相似的");
+         mHintView.setTextSize(20f);
          mHintView.setTextColor(Color.WHITE);
-         mHintView.setBackgroundColor(Color.GRAY);
 
-         mG1 = new GuideView.Builder(this)
+         mGVOne = new GuideView.Builder(getActivity())
                  .setTargetView(R.id.text_one)
                  .setHintView(mHintView)
-                 .setHintViewDirection(Direction.RIGHT_BOTTOM)
+                 .setHintViewDirection(Direction.BOTTON)
                  .setTransparentOvalPadding(20)
-                 .setBackgroundColor(0xcc789456)
+                 .setHintViewMarginTop(100)
                  .setOnClickListener(new View.OnClickListener() {
                      @Override
                      public void onClick(View v) {
-                         mG1.hide();
-                         mG2.show();
+                         mGVOne.hide();
+                         mGVTwo.show();
                      }
                  })
                  .create();
-         mG1.show();
+         mGVOne.show();
 
-         mG2 = new GuideView.Builder(this)
+         mGVTwo = new GuideView.Builder(getActivity())
                  .setTargetView(R.id.text_two)
                  .setHintView(mHintView)
-                 .setHintViewDirection(Direction.RIGHT_ABOVE)
+                 .setHintViewDirection(Direction.ABOVE_ALIGN_LEFT)
                  .setTransparentOvalPaddingLeft(20)
                  .setTransparentOvalPaddingRight(20)
                  .setOnClickListener(new View.OnClickListener() {
                      @Override
                      public void onClick(View v) {
-                         mG2.hide();
-                         mG3.show();
+                         mGVTwo.hide();
+                         mGVThree.show();
                      }
                  })
                  .create();
 
-         mG3 = new GuideView.Builder(this)
+         mGVThree = new GuideView.Builder(getActivity())
                  .setTargetView(R.id.text_three)
                  .setHintView(mHintView)
-                 .setHintViewDirection(Direction.LEFT_BOTTOM)
+                 .setHintViewDirection(Direction.BOTTOM_ALIGN_RIGHT)
                  .setOnClickListener(new View.OnClickListener() {
                      @Override
                      public void onClick(View v) {
-                         mG3.hide();
+                         mGVThree.hide();
                      }
                  })
                  .create();
-
      }
  }
  ```
-**注意**
->建议自己判断加载不加载guideView，这样能避免showOnce()在第二次进入页面页去绘制view
 
 ##License
 
