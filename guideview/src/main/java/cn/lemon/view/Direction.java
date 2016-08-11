@@ -20,7 +20,7 @@ public interface Direction {
     int ABOVE_ALIGN_LEFT = 31; //上方并且左对齐
     int ABOVE_ALIGN_RIGHT = 32; //上方并且右对齐
 
-    int BOTTON = 40; //正下方
+    int BOTTOM = 40; //正下方
     int BOTTOM_ALIGN_LEFT = 41; //下方并且左对齐
     int BOTTOM_ALIGN_RIGHT = 42; //下方并且右对齐
 }

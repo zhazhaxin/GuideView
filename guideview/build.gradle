@@ -30,7 +30,7 @@ ext {
 
     publishedGroupId = 'cn.Lemon'
     artifact = 'guideview'  //与module名必须保持一致，踩了好多次坑了
-    libraryVersion = '0.1.5'
+    libraryVersion = '0.1.6'
 
     siteUrl = 'https://github.com/llxdaxia/GuideView'
     gitUrl = 'https://github.com/llxdaxia/GuideView.git'

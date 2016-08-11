@@ -44,17 +44,16 @@ public class GuideViewFragment extends Fragment {
     }
 
     public void showGuideViews() {
-        TextView mHintView = new TextView(getActivity());
-        mHintView.setText("列夫·托尔斯泰曾在《安娜·卡列尼娜》里说过：幸福的家庭都是相似的");
-        mHintView.setTextSize(20f);
-        mHintView.setTextColor(Color.WHITE);
+        TextView mHintViewOne = new TextView(getActivity());
+        mHintViewOne.setText("列夫·托尔斯泰曾在《安娜·卡列尼娜》里说过：幸福的家庭都是相似的");
+        mHintViewOne.setTextSize(20f);
+        mHintViewOne.setTextColor(Color.WHITE);
 
         mGVOne = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_one)
-                .setHintView(mHintView)
-                .setHintViewDirection(Direction.BOTTON)
+                .setHintView(mHintViewOne)
+                .setHintViewDirection(Direction.RIGHT_BOTTOM)
                 .setTransparentOvalPadding(20)
-                .setHintViewMarginTop(100)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -67,8 +66,8 @@ public class GuideViewFragment extends Fragment {
 
         mGVTwo = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_two)
-                .setHintView(mHintView)
-                .setHintViewDirection(Direction.ABOVE_ALIGN_LEFT)
+                .setHintView(mHintViewOne)
+                .setHintViewDirection(Direction.BOTTOM_ALIGN_LEFT)
                 .setTransparentOvalPaddingLeft(20)
                 .setTransparentOvalPaddingRight(20)
                 .setOnClickListener(new View.OnClickListener() {
@@ -82,8 +81,8 @@ public class GuideViewFragment extends Fragment {
 
         mGVThree = new GuideView.Builder(getActivity())
                 .setTargetView(R.id.text_three)
-                .setHintView(mHintView)
-                .setHintViewDirection(Direction.BOTTOM_ALIGN_RIGHT)
+                .setHintView(mHintViewOne)
+                .setHintViewDirection(Direction.LEFT_BOTTOM)
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

@@ -12,22 +12,19 @@ import android.graphics.RectF;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IdRes;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 /**
- * 参考了https://github.com/laxian/GuideView
- * GuideView 重要函数调用顺序 onMeasure -- onGlobalLayout -- createGuideView -- onMeasure --
- * onGlobalLayout -- onDraw -- drawMaskLayer -- 查找TargetView的位置，给画笔Paint设置PorterDuff.Mode模式画出透明的圆或椭圆
+ * 参考了https://github.com/laxian/GuideView  现在性能和功能完爆它
  * <p>
- * 注意：
- * 为了能查找到TargetView的位置，应该在TargetView的显示出来并且能获取到width,height以后才能使用GuideView。当ViewTree布局发生改变的时候回调
- * OnGlobalLayout方法，并且应该控制回调一次。在通常情况下建议在onResume()使用。同时不建议使用showOnce()方法，建议自己控制显示条件。
- * 在一些特殊的情况下可以这样使用：
+ * 方法回调：创建GuideView -- initParams(初始化参数) -- getTargetViewPosition(获取TargetView位置核心方法) -- addHintView --
+ * show(添加GuideView进DecorView) -- GuideView.onMeasure -- GuideView.onLayout -- GuideView.Draw -- drawMaskLayer(绘制完毕)
+ * <p>
  * view.post(new Runnable(){
  * public void run(){
  * new GuideView.Builder()
@@ -43,6 +40,7 @@ public class GuideView extends RelativeLayout {
 
     private final String TAG = "GuideView";
 
+    private boolean hasMeasure = false;
     private boolean hasAddHintView = false;
     private boolean isShowing = false;
     private int mHintViewSpace = 0; //hintView和TargetView间距,默认20px
@@ -65,9 +63,12 @@ public class GuideView extends RelativeLayout {
     private int mTargetViewWidth;
     private int mTargetViewHeight;
     private int mHintViewDirection;
+
+    private int mScreenWidth;
+    private int mScreenHeight;
     private
     @ColorInt
-    int MASK_LAYER_COLOR = 0xd91D1C1C;  //遮罩层默认颜色
+    int MASK_LAYER_COLOR = 0xd9000000;  //遮罩层默认颜色
 
     private LayoutParams mHintLayoutParams;
 
@@ -89,10 +90,15 @@ public class GuideView extends RelativeLayout {
     public GuideView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         Log.i(TAG, " --- GuideView");
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        mScreenWidth = displayMetrics.widthPixels;
+        mScreenHeight = displayMetrics.heightPixels;
         mDecorView = (FrameLayout) ((Activity) getContext()).getWindow().getDecorView();
         mBackgroundPaint = new Paint();
         mTransparentPaint = new Paint();
         mBackgroundPaint.setColor(MASK_LAYER_COLOR);
+        Log.i(TAG, "screenWidth : " + mScreenWidth);
+        Log.i(TAG, "screenHeight : " + mScreenHeight);
     }
 
     public void initParams(Builder.GuideViewParams params) {
@@ -135,10 +141,6 @@ public class GuideView extends RelativeLayout {
     @Override
     protected void onDraw(Canvas canvas) {
         Log.i(TAG, " --- onDraw");
-        if (mTargetView == null) {
-            return;
-        }
-        getTargetViewPosition();
         drawMaskLayer(canvas);
     }
 
@@ -206,15 +208,13 @@ public class GuideView extends RelativeLayout {
         }
         Log.i(TAG, " --- addHintView");
         if (mHintView != null) {
-            int screenWidth = this.getWidth();
-            int screenHeight = this.getHeight();
 
             LayoutParams layoutParams;
             if (mHintLayoutParams != null) {
                 layoutParams = mHintLayoutParams;
             } else {
-                layoutParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                        LayoutParams.WRAP_CONTENT);
             }
 
             switch (mHintViewDirection) {
@@ -225,23 +225,23 @@ public class GuideView extends RelativeLayout {
                 case Direction.LEFT:
                     this.setGravity(Gravity.RIGHT);
                     layoutParams.setMargins(0, mTargetViewLocation[1],
-                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
+                            mScreenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
                     break;
                 case Direction.LEFT_BOTTOM:
                     this.setGravity(Gravity.RIGHT | Gravity.TOP);
                     layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop,
-                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
+                            mScreenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight, 0);
                     break;
                 case Direction.LEFT_ABOVE:
                     this.setGravity(Gravity.RIGHT | Gravity.BOTTOM);
-                    layoutParams.setMargins(0, 0, screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
-                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    layoutParams.setMargins(0, 0, mScreenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
+                            mScreenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
                 case Direction.LEFT_ALIGN_BOTTOM:
                     this.setGravity(Gravity.RIGHT | Gravity.BOTTOM);
                     layoutParams.setMargins(0, mTargetViewLocation[1],
-                            screenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
-                            screenHeight - mTargetViewLocation[1] - mTargetViewHeight);
+                            mScreenWidth - mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginRight,
+                            mScreenHeight - mTargetViewLocation[1] - mTargetViewHeight);
                     break;
 
                 //右边相关
@@ -253,7 +253,7 @@ public class GuideView extends RelativeLayout {
                 case Direction.RIGHT_ABOVE:
                     this.setGravity(Gravity.LEFT | Gravity.BOTTOM);
                     layoutParams.setMargins(mTargetViewWidth + mTargetViewLocation[0] + mHintViewSpace + mHintViewMarginLeft, 0,
-                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                            0, mScreenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
                 case Direction.RIGHT_BOTTOM:
                     this.setGravity(Gravity.LEFT | Gravity.TOP);
@@ -263,49 +263,43 @@ public class GuideView extends RelativeLayout {
                 case Direction.RIGHT_ALIGN_BOTTOM:
                     this.setGravity(Gravity.LEFT | Gravity.BOTTOM);
                     layoutParams.setMargins(mTargetViewLocation[0] + mTargetViewWidth + mHintViewSpace + mHintViewMarginLeft,
-                            mTargetViewLocation[1], 0, screenHeight - mTargetViewLocation[1] - mTargetViewHeight);
+                            0, 0, mScreenHeight - mTargetViewLocation[1] - mTargetViewHeight + mHintViewMarginBottom);
                     break;
 
                 //上方相关
                 case Direction.ABOVE:
                     this.setGravity(Gravity.BOTTOM);
                     layoutParams.setMargins(0, 0,
-                            0, screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                            0, mScreenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
                 case Direction.ABOVE_ALIGN_LEFT:
                     this.setGravity(Gravity.BOTTOM | Gravity.LEFT);
                     layoutParams.setMargins(mTargetViewLocation[0] + mHintViewMarginLeft, 0, 0,
-                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                            mScreenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
                 case Direction.ABOVE_ALIGN_RIGHT:
                     this.setGravity(Gravity.BOTTOM | Gravity.RIGHT);
-                    layoutParams.setMargins(0, 0, screenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight,
-                            screenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
+                    layoutParams.setMargins(0, 0, mScreenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight,
+                            mScreenHeight - mTargetViewLocation[1] + mHintViewSpace + mHintViewMarginBottom);
                     break;
 
                 //下方相关
-                case Direction.BOTTON:
+                case Direction.BOTTOM:
                     this.setGravity(Gravity.TOP);
                     layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewMarginTop, 0, 0);
                     break;
                 case Direction.BOTTOM_ALIGN_LEFT:
-                    this.setGravity(Gravity.TOP);
+                    this.setGravity(Gravity.TOP | Gravity.LEFT);
                     layoutParams.setMargins(mTargetViewLocation[0] + mHintViewMarginLeft,
                             mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop, 0, 0);
                     break;
                 case Direction.BOTTOM_ALIGN_RIGHT:
-                    this.setGravity(Gravity.TOP);
+                    this.setGravity(Gravity.TOP | Gravity.RIGHT);
                     layoutParams.setMargins(0, mTargetViewLocation[1] + mTargetViewHeight + mHintViewSpace + mHintViewMarginTop,
-                            screenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight, 0);
+                            mScreenWidth - mTargetViewLocation[0] - mTargetViewWidth + mHintViewMarginRight, 0);
             }
-
-            if (mHintView.getParent() != null) {
-                mHintView.setLayoutParams(layoutParams);
-                Log.i(TAG, "hintView 有爸爸啦。。。");
-            } else {
-                this.addView(mHintView, layoutParams);
-                hasAddHintView = true;
-            }
+            this.addView(mHintView, layoutParams);
+            hasAddHintView = true;
         }
     }
 
@@ -316,38 +310,34 @@ public class GuideView extends RelativeLayout {
     }
 
     public void show() {
-        Log.i(TAG, "show : add GuideView into DecorView");
-        if (isShowing()) {
+        if (isShowing || !hasMeasure) {
             return;
         }
+        Log.i(TAG, "show : add GuideView into DecorView");
         this.setBackgroundColor(Color.TRANSPARENT); //这句为什么么必须要。
+        addHintView();
         mDecorView.addView(this);
         isShowing = true;
     }
 
-    private boolean isShowing() {
-        if (mTargetView == null) {
-            Log.i(TAG, "mTargetView == null");
-            return true;
-        }
-        return isShowing;
-    }
-
+    /**
+     * 获取TargetView位置
+     */
     public void getTargetViewPosition() {
-        if (mTargetView == null) {
-            Log.i(TAG, "mTargetView == null");
-            return;
-        }
+        Log.i(TAG, "getTargetViewPosition");
         if (mTargetView.getWidth() > 0 && mTargetView.getHeight() > 0) {
             mTargetView.getLocationInWindow(mTargetViewLocation);
             if (mTargetViewWidth == 0 || mTargetViewHeight == 0) {
                 mTargetViewWidth = mTargetView.getWidth();
                 mTargetViewHeight = mTargetView.getHeight();
             }
+            if (mTargetViewLocation[0] >= 0 && mTargetViewLocation[1] >= 0) {
+                hasMeasure = true;
+            }
             Log.i(TAG, "targetView.width : " + mTargetView.getWidth() + " location x : " + mTargetViewLocation[0]);
             Log.i(TAG, "targetView.height : " + mTargetView.getHeight() + " location y : " + mTargetViewLocation[1]);
-            addHintView();
         } else {
+            hasMeasure = false;
             Log.i(TAG, "targetView is not measured,please user view.post(Runnable run) initialize GuideView");
         }
     }
@@ -513,6 +503,7 @@ public class GuideView extends RelativeLayout {
             GuideView guideView = new GuideView(mContext);
             guideView.initParams(mParams);
             guideView.setOnClickListener(mParams.mClickListener);
+            guideView.getTargetViewPosition(); //获取TargetView的位置
             return guideView;
         }
 
