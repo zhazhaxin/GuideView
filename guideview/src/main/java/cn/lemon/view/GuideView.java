@@ -320,6 +320,10 @@ public class GuideView extends RelativeLayout {
         isShowing = true;
     }
 
+    public boolean isShowing() {
+        return isShowing;
+    }
+
     /**
      * 获取TargetView位置
      */
@@ -331,7 +335,7 @@ public class GuideView extends RelativeLayout {
                 mTargetViewWidth = mTargetView.getWidth();
                 mTargetViewHeight = mTargetView.getHeight();
             }
-            if (mTargetViewLocation[0] >= 0 && mTargetViewLocation[1] >= 0) {
+            if (mTargetViewLocation[0] >= 0 && mTargetViewLocation[1] > 0) {
                 hasMeasure = true;
             }
             Log.i(TAG, "targetView.width : " + mTargetView.getWidth() + " location x : " + mTargetViewLocation[0]);
