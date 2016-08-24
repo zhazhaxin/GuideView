@@ -1,8 +1,5 @@
 # GuideView
 
- - 参考了
- [https://github.com/laxian/GuideView](https://github.com/laxian/GuideView)
-
  - gradle
  ```
    compile 'cn.Lemon:guideview:0.1.6'
@@ -10,13 +7,12 @@
 
  - 方法回调顺序
  ```
-  * 方法回调：创建GuideView -- initParams(初始化参数) -- getTargetViewPosition(获取TargetView位置核心方法) -- addHintView --
-  * show(添加GuideView进DecorView) -- GuideView.onMeasure -- GuideView.onLayout -- GuideView.Draw -- drawMaskLayer(绘制完毕)
+  * 方法回调：创建GuideView -- initParams(初始化参数) -- getTargetViewPosition(获取TargetView位置核心方法) --
+  * show(添加GuideView进DecorView) -- addHintView -- GuideView.onMeasure -- GuideView.onLayout -- GuideView.Draw -- drawMaskLayer(绘制完毕)
  ```
 
  - 使用
- ```java
-
+ ```
      @Override
      public void onResume() {
          super.onResume();
@@ -52,7 +48,7 @@
 
      }
  ```
- ![效果图](/demo.png)
+<img src="demo.png" width="270" height="480"/>
 
 ##License
 
