@@ -51,7 +51,7 @@
 
  - Demo效果图
 
-<img src="demo.png" width="270" height="480"/>
+<img src="demo.png" width="320" height="564"/>
 
 ##License
 
