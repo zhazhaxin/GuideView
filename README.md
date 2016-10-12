@@ -52,6 +52,7 @@
  - Demo效果图
 
 <img src="demo.png" width="320" height="564"/>
+<img src="netease_demo.png" width="320" height="564"/>
 
 ##License
 
