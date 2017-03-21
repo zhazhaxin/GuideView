@@ -12,8 +12,7 @@
  ```
 
  - 使用
- ```
-     @Override
+ ```java
      public void onResume() {
          super.onResume();
          fragment.post(new Runnable() {
@@ -54,7 +53,7 @@
 <img src="demo.png" width="320" height="564"/>
 <img src="netease_demo.png" width="320" height="564"/>
 
-##License
+## License
 
 This project is licensed under the terms of the Apache License 2.0
 
