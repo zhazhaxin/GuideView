@@ -2,22 +2,29 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '25.0.0'
+    buildToolsVersion '27.0.3'
     defaultConfig {
         applicationId "cn.lemon.guideview"
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions("isfree", "channel")
+
     productFlavors{
-        dev{
-            applicationId "cn.lemon.guideviewdev"
+        free{
+            dimension "isfree"
         }
-        qa{
-            applicationId "cn.lemon.guideviewqa"
+        paid {
+            dimension "isfree"
+        }
+        wandoujia{
+            dimension "channel"
+        }
+        baidu{
+            dimension "channel"
         }
     }
 
@@ -34,6 +41,6 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:23.1.0'
-    compile project(':guideview')
+    implementation 'com.android.support:appcompat-v7:23.4.0'
+    api project(':guideview')
 }

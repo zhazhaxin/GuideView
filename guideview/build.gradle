@@ -2,27 +2,11 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '25.0.0'
-
-    defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
+    buildToolsVersion '27.0.3'
 }
 
 dependencies {
-    compile 'com.android.support:support-annotations:24.1.0'
+    api 'com.android.support:support-annotations:27.1.1'
 }
 ext {
     bintrayRepo = 'maven'
@@ -30,7 +14,7 @@ ext {
 
     publishedGroupId = 'cn.Lemon'
     artifact = 'guideview'  //与module名必须保持一致，踩了好多次坑了
-    libraryVersion = '0.1.6'
+    libraryVersion = '1.0.0'
 
     siteUrl = 'https://github.com/llxdaxia/GuideView'
     gitUrl = 'https://github.com/llxdaxia/GuideView.git'

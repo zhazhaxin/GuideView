@@ -1,9 +1,9 @@
 package cn.lemon.guideview;
 
+import android.app.Fragment;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +20,7 @@ public class GuideViewFragment extends Fragment {
 
     private GuideView mGVOne, mGVTwo, mGVThree;
     private View fragment;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -45,8 +46,8 @@ public class GuideViewFragment extends Fragment {
 
     public void showGuideViews() {
         TextView mHintViewOne = new TextView(getActivity());
-        mHintViewOne.setText("列夫·托尔斯泰曾在《安娜·卡列尼娜》里说过：幸福的家庭都是相似的");
-        mHintViewOne.setTextSize(20f);
+        mHintViewOne.setText("hello word");
+        mHintViewOne.setTextSize(15);
         mHintViewOne.setTextColor(Color.WHITE);
 
         mGVOne = new GuideView.Builder(getActivity())
